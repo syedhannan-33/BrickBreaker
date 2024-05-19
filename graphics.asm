@@ -166,7 +166,9 @@ draw_paddle_loop:
 		sub ax , paddle_X
 		cmp ax , paddle_width	; compares number of pixels marked in columns
 		jle draw_paddle_loop
+		
 		mov cx , paddle_X		; resets the coloumn to intial
+		
 		inc dx				; moves to the next row
 		mov ax , dx
 		sub ax , paddle_Y
