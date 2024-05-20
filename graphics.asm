@@ -158,7 +158,7 @@ Draw_Paddle proc
 	
 draw_paddle_loop:
 		mov ah , 0ch		; write to pixel
-		mov al , 03h		;colour of paddle is red
+		mov al , 03h		;colour of paddle is Cyan
 		int 10h				;execute with the configurations
 		
 		inc cx				;move to next column
