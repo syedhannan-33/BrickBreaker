@@ -9,13 +9,16 @@
 	
 	time_var db 0h	; contains the prev elapsed time
 	
-	bricks_X1_3 dw 0fh, 4Bh, 87h, 0C3h, 0FFh 
+	bricks_X_1 dw 0fh, 4Bh, 87h, 0C3h, 0FFh 
 	bricks_Y1 dw 0fh
 	
-	bricks_X2_4 dw 01Eh, 64h, 0AAh, 0F0h
+	bricks_X_2 dw 01Eh, 64h, 0AAh, 0F0h
 	bricks_Y2 dw 1Ah
 
+	bricks_X_3 dw 0fh, 4Bh, 87h, 0C3h, 0FFh 
 	bricks_Y3 dw 25h
+
+	bricks_X_4 dw 01Eh, 64h, 0AAh, 0F0h
 	bricks_Y4 dw 30h
 	bricks_height dw 05h
 	bricks_width  dw 32h
@@ -277,22 +280,22 @@ Draw_bricks endp
 
 Load_Bricks proc
 
-		mov si, offset bricks_X1_3  ;row1 coordinates	
+		mov si, offset bricks_X_1 ;row1 coordinates	
 		mov di, offset bricks_Y1 
 		mov bx, 5                   ;no. of bricks
 		call Draw_bricks
 
-		mov si, offset bricks_X2_4  ;row2 coordinates
+		mov si, offset bricks_X_2  ;row2 coordinates
 		mov di, offset bricks_Y2
 		mov bx, 4		    ;no. of bricks
 		call Draw_bricks
 		
-		mov si, offset bricks_X1_3  ;row3 coordinates	
+		mov si, offset bricks_X_3  ;row3 coordinates	
 		mov di, offset bricks_Y3 
 		mov bx, 5                   ;no. of bricks
 		call Draw_bricks
 	
-		mov si, offset bricks_X2_4  ;row4 coordinates
+		mov si, offset bricks_X_4  ;row4 coordinates
 		mov di, offset bricks_Y4
 		mov bx, 4		    ;no. of bricks
 		call Draw_bricks
@@ -391,8 +394,7 @@ Erase_Paddle endp
 
 Check_collision proc
 
-;ball_X + ball_size  > paddle_X &&  ball_X < paddle_X + paddle_width
-; && ball_Y + ball_size > paddle_Y && ball_Y < paddle_Y +  paddle_height
+;ball_X + ball_size  > paddle_X &&  ball_X < paddle_X + paddle_width   ; && ball_Y + ball_size > paddle_Y && ball_Y < paddle_Y +  paddle_height
 
 	mov ax , ball_X
 	add ax , ball_size
