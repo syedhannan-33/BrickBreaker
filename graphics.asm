@@ -464,7 +464,7 @@ row:
 	cmp bx , -999										; put a sentinal value for the bricks which are already removed
 	je no_collision_brick
 	
-	mov temp_brick_X									;condition 1
+	mov temp_brick_X , bx								;condition 1
 	mov ax , ball_X
 	add ax , ball_size
 	cmp ax , temp_brick_X
