@@ -3,6 +3,17 @@
 .386
 
 .data
+
+	is_over db 0
+	
+	intro_msg db "Welcome to Brick Breaker Game!", 0Dh, 0Ah, 0DH, 0Ah
+          	  db "Use 'A' and 'D' keys to move the paddle left and right.", 0Dh, 0Ah, 0DH, 0Ah
+           	  db "Break all the bricks to win the game.", 0Dh, 0Ah, 0DH, 0Ah
+          	  db "Press any key to start...$"
+			  
+	exit_msg db 10,13,"GAME ENDED" , 10 , 13 , "You Scored : $"
+	score dw 0
+
 	window_width dw 140h								;the width of windows is  320p
 	window_height dw 0c8h								;height of the window is 200p
 	window_bounds dw 05h								;to check for the boundary to help proper bounce back of the ball
@@ -50,7 +61,8 @@ main proc
 
 	mov ax , @data
 	mov ds , ax
-	
+
+	call intro_page	
 	call clear_screen
 	
 	check_time:
@@ -70,11 +82,15 @@ main proc
 		call Draw_Ball
 		call Draw_Paddle
 		
+		cmp is_over , 1
+		je game_over
+		
 		JMP check_time  								; after everything check time again 
 		mov ah , 00h
 		int 16h
 	
-	
+game_over:
+	call exit_page
 
 
 mov ah , 4ch
@@ -82,6 +98,53 @@ int 21h
 
 
 main endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+intro_page proc
+
+ 	    call clear_screen   	;Clear the screen
+    
+	    mov ax, 04h			;Set up the video mode and text attributes
+            int 10h 			;Set text mode
+    
+    
+    	    ;Display the introductory text
+    	    mov ah, 09h        ; Display string function
+    	    lea dx, intro_msg
+    	    int 21h
+    
+    	   ;Wait for a key press
+           mov ah, 00h
+           int 16h
+    
+    ret
+intro_page endp
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+exit_page proc
+
+ 	    call clear_screen   	;Clear the screen
+    
+	    mov ax, 04h			;Set up the video mode and text attributes
+            int 10h 			;Set text mode
+    
+    
+    	    ;Display the introductory text
+    	    mov ah, 09h        ; Display string function
+    	    lea dx, exit_msg
+    	    int 21h
+			
+			mov ax , score
+			call genericOutput
+    	   ;Wait for a key press
+           mov ah, 00h
+           int 16h
+    
+    ret
+exit_page endp
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 move_ball proc
 
@@ -112,7 +175,7 @@ move_ball proc
 	sub ax , window_bounds
 	sub ax , ball_size
 	cmp ball_Y , ax										;ball_Y > window_height(yes-> ball collides with the bottom)
-	jg ball_reset
+	jg player_out
 
 	call Check_collision
 
@@ -126,8 +189,8 @@ move_ball proc
 		neg ball_velocity_Y
 		ret
 		
-	ball_reset:
-		call Reset_Ball_Position
+	player_out:
+		mov is_over , 1
 		ret
 	
 move_ball endp
@@ -490,6 +553,7 @@ row:
 	
 	call clear_screen									; update the screen to remove the broken brick
 	
+	add score , 10
 	neg ball_velocity_Y
 	jmp exit_check_collision
 	
@@ -503,5 +567,37 @@ exit_check_collision:
 
 ret
 check_collision_brick endp
+
+genericOutput proc
+
+	mov cx,0
+	mov bx , 10
+again:	
+	
+	
+	xor dx,dx
+	div bx
+	push dx
+	
+	inc cx
+	cmp ax,0
+	je print
+	jmp again
+	
+print:
+	pop dx
+	cmp dl,9
+	jbe digit
+	add dl,7h
+digit:
+	add dl,30h
+	mov ah,2h
+	int 21h
+	dec cx
+	jnz print
+	
+	ret
+genericOutput endp
+
 
 end main
