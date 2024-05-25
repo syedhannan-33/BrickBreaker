@@ -85,6 +85,9 @@ main proc
 		cmp is_over , 1
 		je game_over
 		
+		cmp score , 180
+		je game_over
+		
 		JMP check_time  								; after everything check time again 
 		mov ah , 00h
 		int 16h
