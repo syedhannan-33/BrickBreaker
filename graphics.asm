@@ -45,14 +45,18 @@
 	ball_velocity_Y dw 02h								;speed of ball on Y axis
 	ball_size	dw 04h
 	
-	paddle_X dw 97h										;current position of the paddle on X aixis
-	paddle_Y dw 0BEh									;current positon of the paddle on Y axis
-	
-	paddle_width dw 2Ah									;GEometry of the paddle
-	paddle_height dw 04h
-	paddle_velocity dw 05h								;speed of the paddle
+	paddle_Width    equ 40       ; Width of the paddle
+    paddle_Height   equ 5        ; Height of the paddle
+    paddle_Color    equ 0fh       ; Color of the paddle (white)
+    screenWidth     equ 320
+    screenHeight    equ 200
+    boundaryColor   equ 2        ; Green color
+    leftKey         equ    'a'   ; Left movement key
+    rightKey        equ    'd'      ; Right movement key								
 
-
+    paddle_X        dw 0AEh
+    paddle_Y        equ 190
+    keyPressed      db 97h
 
 .code
 
@@ -74,6 +78,14 @@ main proc
 		
 		mov time_var , dl								; updates the value of prev time to current time
 		
+
+
+        call Draw_Boundary_Top
+        call Draw_Boundary_Bottom
+        call Draw_Boundary_Left
+        call Draw_Boundary_Right
+        
+
 		call move_ball			
 		call move_Paddle
 		
@@ -89,8 +101,7 @@ main proc
 		je game_over
 		
 		JMP check_time  								; after everything check time again 
-		mov ah , 00h
-		int 16h
+	
 	
 game_over:
 	call exit_page
@@ -101,6 +112,230 @@ int 21h
 
 
 main endp
+
+
+
+
+
+; Procedure to draw a row of the paddle
+Draw_Row proc
+    push cx                     ; Preserve cx
+    push dx                     ; Preserve dx
+
+Draw_Row_Loop:
+    ; Draw a pixel at the current position
+    mov ah, 0Ch                 ; BIOS function to set pixel
+    mov al, paddle_Color        ; Color of the paddle
+    int 10h                     ; Call BIOS interrupt to draw the pixel
+
+    ; Move to the next column
+    inc cx
+    dec bx                      ; Decrement the counter for remaining pixels in the row
+    jnz Draw_Row_Loop           ; Continue drawing if there are remaining pixels in the row
+
+    pop dx                      ; Restore dx
+    pop cx                      ; Restore cx
+    ret
+
+Draw_Row endp
+
+Draw_Boundary_Top proc
+    mov cx, 0                   ; Start column
+    mov dx, 0                   ; Start row
+
+Draw_Boundary_Top_Loop:
+    mov ah, 0Ch                 ; Write pixel
+    mov al, boundaryColor
+    int 10h
+    inc cx                      ; Next column
+    cmp cx, screenWidth
+    jl Draw_Boundary_Top_Loop  ; Loop until end of row
+    ret
+Draw_Boundary_Top endp
+
+Draw_Boundary_Bottom proc
+    mov cx, 0                   ; Start column
+    mov dx, screenHeight - 1    ; Start row (bottom row)
+
+Draw_Boundary_Bottom_Loop:
+    mov ah, 0Ch                 ; Write pixel
+    mov al, boundaryColor
+    int 10h
+    inc cx                      ; Next column
+    cmp cx, screenWidth
+    jl Draw_Boundary_Bottom_Loop  ; Loop until end of row
+    ret
+Draw_Boundary_Bottom endp
+
+Draw_Boundary_Left proc
+    mov cx, 0                   ; Start column
+    mov dx, 0                   ; Start row
+
+Draw_Boundary_Left_Loop:
+    mov ah, 0Ch                 ; Write pixel
+    mov al, boundaryColor
+    int 10h
+    inc dx                      ; Next row
+    cmp dx, screenHeight
+    jl Draw_Boundary_Left_Loop  ; Loop until end of column
+    ret
+Draw_Boundary_Left endp
+
+Draw_Boundary_Right proc
+    mov cx, screenWidth - 1     ; Start column (rightmost column)
+    mov dx, 0                   ; Start row
+
+Draw_Boundary_Right_Loop:
+    mov ah, 0Ch                 ; Write pixel
+    mov al, boundaryColor
+    int 10h
+    inc dx                      ; Next row
+    cmp dx, screenHeight
+    jl Draw_Boundary_Right_Loop  ; Loop until end of column
+    ret
+Draw_Boundary_Right endp
+
+
+
+
+
+
+
+Draw_Paddle proc
+    mov cx, paddle_X            ; Initial position of paddle's top-left corner (column)
+    mov dx, paddle_Y            ; Initial position of paddle's top-left corner (row)
+
+Draw_Paddle_Loop:
+    ; Draw a row of the paddle
+    mov ax, paddle_X
+    mov bx, paddle_Width        ; Width of the paddle (number of pixels in a row)
+    call Draw_Row
+
+    ; Move to the next row
+    inc dx
+
+    ; Check if all rows have been drawn
+    mov ax, dx
+    sub ax, paddle_Y            ; Compare the number of rows drawn with paddle height
+    cmp ax, paddle_Height
+    jle Draw_Paddle_Loop        ; Continue drawing if not all rows have been drawn
+
+    ret
+
+Draw_Paddle endp
+
+
+
+
+
+
+
+Erase_Paddle proc
+    mov cx, paddle_X                ; Initial position of paddle's top-left corner (column)
+    mov dx, paddle_Y                ; Initial position of paddle's top-left corner (row)
+
+Erase_Paddle_Loop:
+    ; Erase a row of the paddle
+    mov ax, paddle_X
+    mov bx, paddle_Width            ; Width of the paddle (number of pixels in a row)
+    call Erase_Row
+
+    ; Move to the next row
+    inc dx
+
+    ; Check if all rows have been erased
+    mov ax, dx
+    sub ax, paddle_Y                ; Compare the number of rows erased with paddle height
+    cmp ax, paddle_Height
+    jle Erase_Paddle_Loop           ; Continue erasing if not all rows have been erased
+
+    ret
+
+Erase_Paddle endp
+
+Erase_Row proc
+    push cx                         ; Preserve cx
+    push dx                         ; Preserve dx
+
+Erase_Row_Loop:
+    ; Erase a pixel at the current position (by setting it to the background color)
+    mov ah, 0Ch                     ; BIOS function to set pixel
+    mov al, 0h                      ; Background color
+    int 10h                         ; Call BIOS interrupt to draw the pixel
+
+    ; Move to the next column
+    inc cx
+    dec bx                          ; Decrement the counter for remaining pixels in the row
+    jnz Erase_Row_Loop             ; Continue erasing if there are remaining pixels in the row
+
+    pop dx                          ; Restore dx
+    pop cx                          ; Restore cx
+    ret
+
+Erase_Row endp
+
+
+
+
+
+Check_Keypress proc
+    mov ah, 1                   ; Check if a key has been pressed
+    int 16h
+    ret
+Check_Keypress endp
+
+
+Move_Paddle proc
+    ; Erase the previous position of the paddle
+    call Erase_Paddle
+
+    mov ah, 1                   ; Check if a key has been pressed
+    int 16h
+    jz NoKeyPress               ; If no key has been pressed, skip movement
+
+    mov ah, 0                   ; Read the pressed key
+    int 16h
+    cmp al, leftKey             ; Compare with left movement key
+    je MoveLeft                 ; Move left if A key is pressed
+    cmp al, rightKey            ; Compare with right movement key
+    je MoveRight                ; Move right if D key is pressed
+
+NoKeyPress:
+    ret
+
+MoveLeft:
+    cmp paddle_X, 4             ; Check if the paddle is at the left boundary
+    jle NoMovementLeft          ; If yes, don't move left further
+    sub paddle_X, 4            ; Move the paddle left
+    ret
+
+MoveRight:
+    mov ax, paddle_X
+    add ax, paddle_Width
+    cmp ax, [screenWidth-4]       ; Check if the paddle is at the right boundary
+    jge NoMovementRight         ; If yes, don't move right further
+    add paddle_X, 4          ; Move the paddle right
+    ret
+
+NoMovementLeft:
+    ; Optional: Play a sound or display a message for hitting the left boundary
+    ret
+
+NoMovementRight:
+    ; Optional: Play a sound or display a message for hitting the right boundary
+    ret
+
+Move_Paddle endp
+
+
+
+
+
+
+
+
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 intro_page proc
@@ -267,31 +502,7 @@ Draw_Ball endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-Draw_Paddle proc
 
-	mov cx , paddle_X
-	mov dx , paddle_Y
-	
-draw_paddle_loop:
-		mov ah , 0ch									; write to pixel
-		mov al , 03h									;colour of paddle is Cyan
-		int 10h											;execute with the configurations
-		inc cx											;move to next column
-		mov ax,cx
-		sub ax , paddle_X
-		cmp ax , paddle_width							; compares number of pixels marked in columns
-		jle draw_paddle_loop
-		
-		mov cx , paddle_X								; resets the coloumn to intial
-		
-		inc dx											; moves to the next row
-		mov ax , dx
-		sub ax , paddle_Y
-		cmp ax , paddle_height							; compares number of pixels marked in rows
-		jle draw_paddle_loop
-		
-	ret
-Draw_Paddle endp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 clear_screen proc
 
@@ -374,93 +585,6 @@ Load_Bricks endp
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-move_Paddle proc
-
-	call Erase_Paddle
-
-	; first we will check if any key is being pressed
-	mov ah , 01h
-	int 16h
-	
-	;if no key is pressed our zero flag is set
-	jz exit_move_Paddle
-	
-	;if the control reaches here it means that some key was oressed so we check which key is pressed
-	
-	mov ah , 00h
-	int 16h
-	
-	or al , 32											; this will check for both capital and small key in one comparision
-	
-	cmp al , 'a'										;if key 'a' is pressed we will move the paddle to left
-	je move_Paddle_left
-	
-	cmp al , 'd'										;if key 'd' is pressed we will move the paddle to the right
-	je move_Paddle_right
-	
-move_Paddle_left:
-		mov ax , paddle_velocity
-		sub paddle_X , ax								;moves paddle_X to left
-		
-		mov ax , window_bounds							
-		cmp paddle_X , ax								;Check for paddle going out if boundary
-		jl fix_paddle_position_left						;(yes -> fix the paddle near the boundary)
-		jmp exit_move_Paddle
-		
-	fix_paddle_position_left:
-			mov ax , window_bounds
-			mov paddle_X , ax							;fixes the paddle
-			jmp exit_move_Paddle
-			
-move_Paddle_right:
-		mov ax , paddle_velocity
-		add paddle_X , ax								;moves paddle_X to right
-		
-		mov ax, window_width
-		sub ax , window_bounds
-		sub ax , paddle_width
-		
-		cmp paddle_X , ax								;Check for paddle going out if boundary
-		jg fix_paddle_position_right					;(yes -> fix the paddle near the boundary)
-		jmp exit_move_Paddle
-		
-	fix_paddle_position_right:
-			mov paddle_X , ax							;fixes the paddle
-			jmp exit_move_Paddle
-	
-exit_move_Paddle:
-	ret
-move_Paddle endp
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-Erase_Paddle proc
-
-	mov cx , paddle_X
-	mov dx , paddle_Y
-	
-Erase_paddle_loop:
-		mov ah , 0ch									; write to pixel
-		mov al , 00h									;colour of paddle is Black
-		int 10h											;execute with the configurations
-		
-		inc cx											;move to next column
-		mov ax,cx
-		sub ax , paddle_X
-		cmp ax , paddle_width							; compares number of pixels marked in columns
-		jle Erase_paddle_loop
-		
-		mov cx , paddle_X								; resets the coloumn to intial
-		
-		inc dx											; moves to the next row
-		mov ax , dx
-		sub ax , paddle_Y
-		cmp ax , paddle_height							; compares number of pixels marked in rows
-		jle Erase_paddle_loop
-		
-	ret
-Erase_Paddle endp
-
 
 Check_collision proc
 
@@ -531,6 +655,7 @@ row:
 	je no_collision_brick
 	
 	mov temp_brick_X , bx								;condition 1
+	
 	mov ax , ball_X
 	add ax , ball_size
 	cmp ax , temp_brick_X
